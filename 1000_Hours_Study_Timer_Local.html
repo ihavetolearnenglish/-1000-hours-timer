@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1000 Hours Study Timer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f3f3f3; transition: background 0.3s; }
+        h1 { font-size: 40px; margin-bottom: 20px; transition: color 0.3s; }
+        .timer { font-size: 32px; margin: 20px; }
+        .stats { font-size: 20px; margin: 10px; color: #555; }
+        button { padding: 15px 25px; font-size: 16px; margin: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        button:hover { background-color: #45a049; }
+        table { margin: 20px auto; border-collapse: collapse; width: 80%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        #message { font-size: 22px; color: green; margin-top: 15px; }
+        .button-container { display: flex; justify-content: center; gap: 10px; }
+        .dark-mode-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .dark-mode-btn:hover {
+            background-color: #555;
+        }
+        body.dark-mode { background: #333; color: white; }
+        body.dark-mode button { background-color: #666; }
+        body.dark-mode table { background-color: #444; color: white; }
+        body.dark-mode th { background-color: #555; }
+        body.dark-mode .stats, body.dark-mode #message { color: white; }
+        body.dark-mode h1 { color: #FFF; } /* Ensure h1 is readable in dark mode */
+    </style>
+</head>
+<body>
+    <h1>🔥 1000 Hours Study Timer 🔥</h1>
+
+    <button class="dark-mode-btn" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+
+    <div class="timer" id="display">0 hours 0 minutes 0 seconds</div>
+    <div class="stats" id="progress">Progress: 0.00%</div>
+    <div class="stats" id="left">Remaining: 1000 hours</div>
+
+    <div class="button-container">
+        <button onclick="startTimer()">Start</button>
+        <button onclick="stopTimer()">Stop</button>
+        <button onclick="resetTimer()">Reset</button>
+    </div>
+
+    <h2>Session Log</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Duration (h)</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody id="log"></tbody>
+    </table>
+
+    <div id="message"></div>
+
+    <script>
+        let totalSeconds = localStorage.getItem('totalSeconds') ? parseInt(localStorage.getItem('totalSeconds')) : 0;
+        let interval = null;
+        const targetHours = 1000;
+        let sessionLog = JSON.parse(localStorage.getItem('sessionLog')) || [];
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Apply dark mode from localStorage if it was saved previously
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Update the display
+        function updateDisplay() {
+            const totalMinutes = Math.floor(totalSeconds / 60);
+            const totalHours = Math.floor(totalMinutes / 60);
+            const displayMinutes = totalMinutes % 60;
+            const displaySeconds = totalSeconds % 60;
+
+            document.getElementById("display").innerText = `${totalHours} hours ${displayMinutes} minutes ${displaySeconds} seconds`;
+            const progress = Math.min(totalHours / targetHours, 1);
+            document.getElementById("progress").innerText = `Progress: ${(progress * 100).toFixed(2)}%`;
+            document.getElementById("left").innerText = `Remaining: ${Math.max(targetHours - totalHours, 0)} hours`;
+            checkMilestones(progress);
+        }
+
+        // Start the timer
+        function startTimer() {
+            if (!interval) {
+                interval = setInterval(() => {
+                    totalSeconds++;
+                    updateDisplay();
+                    localStorage.setItem('totalSeconds', totalSeconds); // Save to localStorage
+                }, 1000);
+            }
+        }
+
+        // Stop the timer
+        function stopTimer() {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+                const hours = (totalSeconds / 3600).toFixed(2);
+                const note = prompt("Enter the topic you studied:", "");
+                sessionLog.push({ duration: hours, note: note || "(Not specified)" });
+                renderLog();
+                saveLog();
+            }
+        }
+
+        // Reset the timer
+        function resetTimer() {
+            stopTimer();
+            totalSeconds = 0;
+            updateDisplay();
+            sessionLog = [];
+            saveLog();
+            renderLog();
+        }
+
+        // Render the session log
+        function renderLog() {
+            const tbody = document.getElementById("log");
+            tbody.innerHTML = "";
+            sessionLog.forEach((entry, index) => {
+                const row = `<tr><td>${index + 1}</td><td>${entry.duration}</td><td>${entry.note}</td></tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Save the log to localStorage
+        function saveLog() {
+            localStorage.setItem("sessionLog", JSON.stringify(sessionLog));
+        }
+
+        // Load the log from localStorage
+        function loadLog() {
+            const saved = localStorage.getItem("sessionLog");
+            if (saved) {
+                sessionLog = JSON.parse(saved);
+                renderLog();
+            }
+        }
+
+        // Check milestones for motivational messages
+        function checkMilestones(progress) {
+            const message = document.getElementById("message");
+            if (progress >= 1) message.innerText = "🎉 100% Completed! Congratulations!";
+            else if (progress >= 0.9) message.innerText = "💪 Reached 90%! Almost there!";
+            else if (progress >= 0.75) message.innerText = "🔥 75%! You're getting close!";
+            else if (progress >= 0.5) message.innerText = "⭐ 50%! You're halfway there!";
+            else message.innerText = "";
+        }
+
+        // Load the session log when the page is opened
+        loadLog();
+        updateDisplay();
+    </script>
+</body>
+</html>
